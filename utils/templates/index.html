@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robot Dog Servo & Animation Control with Drag Timeline</title>
+  <!-- jQuery UI CSS -->
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css">
+  <style>
+    /* Basic styling for panels and controls */
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { margin-top: 0; }
+    .container { display: flex; flex-wrap: wrap; gap: 20px; }
+    .panel { border: 1px solid #ccc; padding: 15px; border-radius: 5px; flex: 1 1 300px; }
+    .slider-container { margin-bottom: 10px; }
+    label { display: inline-block; width: 80px; }
+    .keyframe-list { list-style-type: none; padding-left: 0; }
+    .keyframe-list li { border-bottom: 1px solid #ddd; padding: 5px; margin-bottom: 3px; }
+    .button-group button { margin-right: 5px; }
+    input[type="number"] { width: 80px; }
+    /* Timeline container styling */
+    #timeline {
+      border: 1px solid #ccc;
+      height: 100px;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 5px;
+      background: #f7f7f7;
+    }
+    /* Timeline keyframe box styling */
+    .timeline-keyframe {
+      display: inline-block;
+      height: 80px;
+      margin: 5px;
+      background-color: #88c;
+      border: 2px solid #555;
+      border-radius: 5px;
+      cursor: move;
+      color: white;
+      font-weight: bold;
+      line-height: 80px;
+      text-align: center;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <h1>Robot Dog Servo & Animation Control with Drag Timeline</h1>
+  <div class="container">
+    <!-- Servo Control Panel -->
+    <div class="panel" id="servoControlPanel">
+      <h2>Servo Control</h2>
+      <form id="servoForm">
+        {% for i in range(1, 13) %}
+          <div class="slider-container">
+            <label for="slider_{{ i }}">Servo {{ i }}:</label>
+            <input type="range" id="slider_{{ i }}" name="slider_{{ i }}" min="0" max="360"
+                   value="{{ slider_values.get('slider_' ~ i, 90) }}"
+                   oninput="updateValue(this, {{ i }}); updateServos();">
+            <span id="value_{{ i }}">{{ slider_values.get('slider_' ~ i, 90) }}</span>
+          </div>
+        {% endfor %}
+      </form>
+    </div>
+
+    <!-- Animation Manager Panel -->
+    <div class="panel" id="animationManager">
+      <h2>Animation Manager</h2>
+      <div class="button-group">
+        <button onclick="clearCurrentAnimation()">Clear Current Animation</button>
+        <button onclick="saveKeyframe()">Save Keyframe</button>
+      </div>
+      <div style="margin-top:10px;">
+        <label for="duration">Duration (ms):</label>
+        <input type="number" id="duration" value="1000" min="100" step="100">
+      </div>
+      <div style="margin-top:10px;">
+        <h3>Current Animation Keyframes</h3>
+        <ul id="currentKeyframeList" class="keyframe-list"></ul>
+      </div>
+      <div style="margin-top:20px;">
+        <input type="text" id="animationName" placeholder="Animation Name">
+        <button onclick="saveCurrentAnimation()">Save Animation</button>
+      </div>
+      <div style="margin-top:10px;">
+        <label for="savedAnimations">Saved Animations:</label>
+        <select id="savedAnimations"></select>
+        <button onclick="loadAnimation()">Load Animation</button>
+        <button onclick="deleteAnimation()">Delete Animation</button>
+      </div>
+      <div style="margin-top:20px;">
+        <button onclick="playAnimation()">Play Animation</button>
+      </div>
+      <!-- New Export/Import Controls -->
+      <div style="margin-top:20px;">
+        <button onclick="downloadAnimation()">Download Animation (JSON)</button>
+        <button onclick="document.getElementById('uploadInput').click()">Upload Animation (JSON)</button>
+        <input type="file" id="uploadInput" accept=".json" style="display:none" onchange="uploadAnimation(this)">
+      </div>
+    </div>
+
+    <!-- Timeline Panel -->
+    <div class="panel" id="timelinePanel">
+      <h2>Timeline</h2>
+      <div id="timeline"></div>
+    </div>
+  </div>
+  
+  <!-- Load jQuery and jQuery UI from CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <script>
+    // Global variables for keyframe management
+    let currentKeyframes = [];
+    let savedAnimations = {};
+
+    // Load saved animations from localStorage on page load
+    function loadSavedAnimations() {
+      const stored = localStorage.getItem("savedAnimations");
+      if (stored) {
+        savedAnimations = JSON.parse(stored);
+      }
+      updateAnimationDropdown();
+    }
+
+    // Update the saved animations dropdown
+    function updateAnimationDropdown() {
+      const select = document.getElementById("savedAnimations");
+      select.innerHTML = "";
+      for (const name in savedAnimations) {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      }
+    }
+
+    // --- Servo Control Functions ---
+    function updateValue(slider, index) {
+      document.getElementById("value_" + index).textContent = slider.value;
+    }
+    function updateServos() {
+      let formData = new FormData(document.getElementById("servoForm"));
+      let params = new URLSearchParams();
+      formData.forEach((value, key) => {
+        document.getElementById("value_" + key.split("_")[1]).textContent = value;
+        params.append(key, value);
+      });
+      fetch("/", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString()
+      }).catch(error => { console.error("Error sending servo update:", error); });
+    }
+    function getSliderValues() {
+      let formData = new FormData(document.getElementById("servoForm"));
+      let sliderValues = {};
+      for (let [key, value] of formData.entries()) {
+        sliderValues[key] = value;
+      }
+      return sliderValues;
+    }
+
+    // --- Keyframe Functions ---
+    // Save current slider values as a keyframe
+    function saveKeyframe() {
+      const currentValues = getSliderValues();
+      const duration = parseInt(document.getElementById("duration").value) || 1000;
+      const keyframe = { positions: currentValues, duration: duration };
+      currentKeyframes.push(keyframe);
+      updateCurrentKeyframeList();
+      updateTimeline();
+      console.log("Keyframe saved:", keyframe);
+    }
+    // Update the keyframe list display
+    function updateCurrentKeyframeList() {
+      const list = document.getElementById("currentKeyframeList");
+      list.innerHTML = "";
+      currentKeyframes.forEach((kf, index) => {
+        const li = document.createElement("li");
+        li.textContent = `Keyframe ${index + 1} - Duration: ${kf.duration}ms`;
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.style.marginLeft = "10px";
+        delBtn.onclick = () => {
+          currentKeyframes.splice(index, 1);
+          updateCurrentKeyframeList();
+          updateTimeline();
+        };
+        li.appendChild(delBtn);
+        list.appendChild(li);
+      });
+    }
+    // Clear all current keyframes
+    function clearCurrentAnimation() {
+      if (confirm("Clear current animation keyframes?")) {
+        currentKeyframes = [];
+        updateCurrentKeyframeList();
+        updateTimeline();
+      }
+    }
+
+    // --- Animation Save/Load/Delete Functions ---
+    function saveCurrentAnimation() {
+      const name = document.getElementById("animationName").value.trim();
+      if (!name) { alert("Please enter an animation name."); return; }
+      if (currentKeyframes.length === 0) { alert("No keyframes to save!"); return; }
+      savedAnimations[name] = currentKeyframes;
+      localStorage.setItem("savedAnimations", JSON.stringify(savedAnimations));
+      updateAnimationDropdown();
+      alert("Animation saved as: " + name);
+    }
+    function loadAnimation() {
+      const select = document.getElementById("savedAnimations");
+      const name = select.value;
+      if (!name || !savedAnimations[name]) {
+        alert("Please select a valid animation to load.");
+        return;
+      }
+      currentKeyframes = savedAnimations[name];
+      updateCurrentKeyframeList();
+      updateTimeline();
+      alert("Loaded animation: " + name);
+    }
+    function deleteAnimation() {
+      const select = document.getElementById("savedAnimations");
+      const name = select.value;
+      if (!name || !savedAnimations[name]) {
+        alert("Please select a valid animation to delete.");
+        return;
+      }
+      if (confirm("Are you sure you want to delete the animation: " + name + "?")) {
+        delete savedAnimations[name];
+        localStorage.setItem("savedAnimations", JSON.stringify(savedAnimations));
+        updateAnimationDropdown();
+        alert("Animation deleted: " + name);
+      }
+    }
+
+    // --- Timeline & Drag/Resize Functions ---
+    // When a timeline box is clicked, load its keyframe into the UI
+    function loadKeyframeIntoUI(index) {
+      const keyframe = currentKeyframes[index];
+      if (!keyframe) return;
+      for (let i = 1; i <= 12; i++) {
+        const sliderId = "slider_" + i;
+        const slider = document.getElementById(sliderId);
+        if (slider && keyframe.positions[sliderId] !== undefined) {
+          slider.value = keyframe.positions[sliderId];
+          updateValue(slider, i);
+        }
+      }
+      updateServos();
+    }
+    // Render the visual timeline with draggable and resizable keyframe boxes
+    function updateTimeline() {
+      const timeline = document.getElementById("timeline");
+      timeline.innerHTML = "";
+      currentKeyframes.forEach((keyframe, index) => {
+        const box = document.createElement("div");
+        box.className = "timeline-keyframe";
+        box.textContent = index + 1;
+        box.setAttribute("data-index", index);
+        // Set width proportional to duration (base: 80px = 1000ms)
+        box.style.width = (keyframe.duration / 1000 * 80) + "px";
+        box.title = "Keyframe " + (index + 1) + "\nDuration: " + keyframe.duration + "ms";
+        box.addEventListener("click", () => { loadKeyframeIntoUI(index); });
+        timeline.appendChild(box);
+      });
+      // Make timeline boxes sortable (to re-order keyframes)
+      $("#timeline").sortable({
+        update: function(event, ui) {
+          let newOrder = [];
+          $("#timeline .timeline-keyframe").each(function() {
+            const index = $(this).data("index");
+            newOrder.push(currentKeyframes[index]);
+          });
+          currentKeyframes = newOrder;
+          updateCurrentKeyframeList();
+          updateTimeline(); // refresh indices
+        }
+      });
+      $("#timeline").disableSelection();
+      
+      // Make timeline boxes resizable (to adjust duration)
+      $(".timeline-keyframe").resizable({
+        handles: "e",
+        stop: function(event, ui) {
+          const index = $(this).data("index");
+          const newWidth = ui.size.width;
+          // Update duration proportionally (80px = 1000ms)
+          const newDuration = Math.round(newWidth / 80 * 1000);
+          currentKeyframes[index].duration = newDuration;
+          $(this).css("width", newWidth + "px");
+          updateCurrentKeyframeList();
+          $(this).attr("title", "Keyframe " + (index + 1) + "\nDuration: " + newDuration + "ms");
+        }
+      });
+    }
+
+    // --- Animation Playback ---
+    function playAnimation() {
+      if (currentKeyframes.length === 0) {
+        alert("No keyframes to play!");
+        return;
+      }
+      let index = 0;
+      function playNextKeyframe() {
+        if (index >= currentKeyframes.length) {
+          console.log("Animation complete");
+          return;
+        }
+        loadKeyframeIntoUI(index);
+        const keyframe = currentKeyframes[index];
+        let params = new URLSearchParams();
+        for (const [key, value] of Object.entries(keyframe.positions)) {
+          params.append(key, value);
+        }
+        fetch("/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params.toString()
+        })
+        .then(() => {
+          setTimeout(() => {
+            index++;
+            playNextKeyframe();
+          }, keyframe.duration);
+        })
+        .catch(error => {
+          console.error("Error during playAnimation:", error);
+        });
+      }
+      playNextKeyframe();
+    }
+
+    // --- Download/Upload Animation (JSON) Functions ---
+    // Download the current animation (currentKeyframes) as a JSON file.
+    function downloadAnimation() {
+      if (currentKeyframes.length === 0) {
+        alert("No keyframes to download!");
+        return;
+      }
+      const dataStr = JSON.stringify(currentKeyframes, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "animation.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    // Upload a JSON file and load it as the current animation.
+    function uploadAnimation(input) {
+      if (!input.files || input.files.length === 0) {
+        return;
+      }
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedKeyframes = JSON.parse(e.target.result);
+          if (!Array.isArray(importedKeyframes)) {
+            throw "Invalid format";
+          }
+          currentKeyframes = importedKeyframes;
+          updateCurrentKeyframeList();
+          updateTimeline();
+          alert("Animation imported successfully!");
+        } catch (err) {
+          alert("Error importing animation: " + err);
+        }
+      };
+      reader.readAsText(file);
+      // Clear the input value so that the same file can be uploaded again if needed.
+      input.value = "";
+    }
+
+    window.onload = function() {
+      loadSavedAnimations();
+    }
+  </script>
+</body>
+</html>
