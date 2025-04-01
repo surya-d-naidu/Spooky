@@ -93,49 +93,132 @@ def adjust_altitude(L_base, leg_position, pitch, roll):
 
     return L_adjusted
 
-# ----- IMU Reading Function -----
-def read_imu_angles():
-    """
-    Reads accelerometer data from the MPU6050 and computes pitch and roll angles.
-    
-    Returns:
-      pitch: rotation around the lateral axis (forward/back tilt)
-      roll:  rotation around the longitudinal axis (side tilt)
-    """
-    data = imu.get_accel_data()  # returns dictionary with keys 'x', 'y', 'z'
-    ax = data['x']
-    ay = data['y']
-    az = data['z']
-    
-    # Calculate pitch and roll in degrees.
-    pitch = math.degrees(math.atan2(ax, math.sqrt(ay**2 + az**2)))
-    roll  = math.degrees(math.atan2(ay, math.sqrt(ax**2 + az**2)))
-    return pitch, roll
+# ----- Kalman Filter Implementation -----
+class KalmanFilter:
+    def __init__(self, dt, process_noise, measurement_noise):
+        self.dt = dt
+        # State vector: [angle, bias]
+        self.x = [0, 0]
+        # State covariance matrix
+        self.P = [[1, 0], [0, 1]]
+        # State transition matrix A
+        self.A = [[1, -dt],
+                  [0, 1]]
+        # Observation matrix H (we only measure angle)
+        self.H = [1, 0]
+        # Process noise covariance Q
+        self.Q = [[process_noise, 0],
+                  [0, process_noise]]
+        # Measurement noise covariance R
+        self.R = measurement_noise
 
-# ----- Main Loop for Testing Stabilization -----
-def stabilization_test():
-    print("Starting stabilization test (standing still). Adjust the platform to see leg corrections.")
+    def update(self, measurement):
+        # Prediction step:
+        x_prior = [
+            self.A[0][0] * self.x[0] + self.A[0][1] * self.x[1],
+            self.A[1][0] * self.x[0] + self.A[1][1] * self.x[1]
+        ]
+        # Covariance prediction: P_prior = A*P*A^T + Q
+        P_prior = [
+            [
+                self.A[0][0]*self.P[0][0] + self.A[0][1]*self.P[1][0],
+                self.A[0][0]*self.P[0][1] + self.A[0][1]*self.P[1][1]
+            ],
+            [
+                self.A[1][0]*self.P[0][0] + self.A[1][1]*self.P[1][0],
+                self.A[1][0]*self.P[0][1] + self.A[1][1]*self.P[1][1]
+            ]
+        ]
+        # Add process noise Q
+        P_prior[0][0] += self.Q[0][0]
+        P_prior[0][1] += self.Q[0][1]
+        P_prior[1][0] += self.Q[1][0]
+        P_prior[1][1] += self.Q[1][1]
+
+        # Kalman Gain: K = P_prior * H^T / (H * P_prior * H^T + R)
+        # Since H = [1, 0], S = P_prior[0][0] + R.
+        S = P_prior[0][0] + self.R
+        K = [P_prior[0][0] / S, P_prior[1][0] / S]
+
+        # Update step:
+        innovation = measurement - (self.H[0]*x_prior[0] + self.H[1]*x_prior[1])
+        self.x[0] = x_prior[0] + K[0] * innovation
+        self.x[1] = x_prior[1] + K[1] * innovation
+
+        # Covariance update: P = (I - K*H)*P_prior
+        self.P[0][0] = (1 - K[0]*self.H[0]) * P_prior[0][0]
+        self.P[0][1] = (1 - K[0]*self.H[0]) * P_prior[0][1]
+        self.P[1][0] = -K[1]*self.H[0]*P_prior[0][0] + P_prior[1][0]
+        self.P[1][1] = -K[1]*self.H[0]*P_prior[0][1] + P_prior[1][1]
+
+        return self.x[0]  # Return the filtered angle
+
+# ----- PID Controller Implementation -----
+class PIDController:
+    def __init__(self, Kp, Ki, Kd, setpoint=0):
+        self.Kp = Kp
+        self.Ki = Ki
+        self.Kd = Kd
+        self.setpoint = setpoint
+        self.integral = 0
+        self.prev_error = 0
+
+    def update(self, measured_value, dt):
+        error = self.setpoint - measured_value
+        self.integral += error * dt
+        derivative = (error - self.prev_error) / dt if dt > 0 else 0
+        output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
+        self.prev_error = error
+        return output
+
+# ----- IMU Reading Function with Kalman Filter -----
+def read_imu_angles_kalman(kf_pitch, kf_roll):
+    data = imu.get_accel_data()  # returns dictionary with keys 'x', 'y', 'z'
+    ax, ay, az = data['x'], data['y'], data['z']
+    # Raw angle measurements.
+    raw_pitch = math.degrees(math.atan2(ax, math.sqrt(ay**2 + az**2)))
+    raw_roll  = math.degrees(math.atan2(ay, math.sqrt(ax**2 + az**2)))
+    # Apply the Kalman filter.
+    filtered_pitch = kf_pitch.update(raw_pitch)
+    filtered_roll = kf_roll.update(raw_roll)
+    return filtered_pitch, filtered_roll
+
+# ----- Main Loop for Stabilization with Kalman Filter and PID Controller -----
+def stabilization_test_with_filters():
+    print("Starting stabilization test with Kalman and PID control.")
+    dt = 0.05  # 50 ms update interval
+    kf_pitch = KalmanFilter(dt, process_noise=0.001, measurement_noise=0.03)
+    kf_roll = KalmanFilter(dt, process_noise=0.001, measurement_noise=0.03)
+    # Initialize a PID controller to adjust altitude toward BASE_ALTITUDE.
+    pid = PIDController(Kp=1.0, Ki=0.1, Kd=0.05, setpoint=BASE_ALTITUDE)
+    
+    last_time = time.time()
     try:
         while True:
-            # Read IMU angles.
-            pitch, roll = read_imu_angles()
-            print(f"(Debug) IMU: pitch={pitch:.2f}°, roll={roll:.2f}°")
-            
-            # For each leg, compute adjusted altitude and then compute IK for joint angles.
+            current_time = time.time()
+            dt = current_time - last_time
+            last_time = current_time
+
+            # Get filtered IMU angles.
+            pitch, roll = read_imu_angles_kalman(kf_pitch, kf_roll)
+            print(f"(Debug) Filtered IMU: pitch={pitch:.2f}°, roll={roll:.2f}°")
+
+            # Process each leg.
             for leg_name, params in legs.items():
                 pos = params['pos']
-                # Use BASE_ALTITUDE as the starting point.
                 L_base = BASE_ALTITUDE
+                # Adjust altitude based on IMU readings.
                 L_desired = adjust_altitude(L_base, pos, pitch, roll)
-                
-                # Compute inverse kinematics.
-                knee_angle, calf_angle = compute_IK(L_desired, l1, l2)
-                
-                # Hip angle remains locked.
+                # Apply PID to refine the altitude toward the setpoint.
+                L_corrected = L_desired + pid.update(L_desired, dt)
+                # Clamp the corrected altitude.
+                L_corrected = max(L_min, min(L_corrected, L_max))
+
+                # Compute inverse kinematics for the corrected altitude.
+                knee_angle, calf_angle = compute_IK(L_corrected, l1, l2)
                 hip_angle = HIP_FIXED
 
-                # Debug print for leg.
-                print(f"{leg_name:12s} | Base L: {L_base:5.2f} -> Adjusted L: {L_desired:5.2f} | "
+                print(f"{leg_name:12s} | L_desired: {L_desired:5.2f} -> L_corrected: {L_corrected:5.2f} | "
                       f"Hip: {hip_angle:5.2f}°, Knee: {knee_angle:5.2f}°, Calf: {calf_angle:5.2f}°")
 
                 # Send commands to the servos.
@@ -143,9 +226,9 @@ def stabilization_test():
                 s(params['knee'], knee_angle)
                 s(params['calf'], calf_angle)
             print("-" * 80)
-            time.sleep(0.05)  # update every 50 ms
+            time.sleep(0.05)
     except KeyboardInterrupt:
         print("Stabilization test stopped.")
 
 if __name__ == '__main__':
-    stabilization_test()
+    stabilization_test_with_filters()
