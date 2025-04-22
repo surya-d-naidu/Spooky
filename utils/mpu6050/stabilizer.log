@@ -1,0 +1,8 @@
+2025-04-20 16:27:04,423 [INFO] MPU6050 initialized
+2025-04-20 16:27:04,431 [INFO] Starting data stream at 50 Hz
+2025-04-20 16:27:36,279 [INFO] Shutdown signal received. Exiting...
+2025-04-20 16:27:50,769 [INFO] MPU6050 initialized
+2025-04-20 16:27:50,785 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-04-20 16:27:50,786 [INFO] [33mPress CTRL+C to quit[0m
+2025-04-20 16:29:04,989 [INFO] Shutdown signal received. Exiting...

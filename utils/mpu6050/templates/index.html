@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>3D Square Tilt Visualizer</title>
+  <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
+</head>
+<body>
+  <h1>3D Tilt Visualizer</h1>
+
+  <form method="get" style="margin-bottom:1em;">
+    Side length q:
+    <input type="number" step="0.1" name="q" value="{{ q }}">
+    Tilt X (°):
+    <input type="number" step="0.1" name="angle_x" value="{{ angle_x }}">
+    Tilt Y (°):
+    <input type="number" step="0.1" name="angle_y" value="{{ angle_y }}">
+    <button type="submit">Update</button>
+  </form>
+
+  <div id="plot" style="width: 100%; height: 600px;"></div>
+
+  <script>
+    // Jinja will fill these with Python data converted to JSON
+    const s1 = {{ s1 | tojson }};
+    const s2 = {{ s2 | tojson }};
+    const distances = {{ distances | tojson }};
+
+    // trace for s1 (closed loop)
+    const t1 = {
+      x: s1.map(p=>p[0]).concat(s1[0][0]),
+      y: s1.map(p=>p[1]).concat(s1[0][1]),
+      z: s1.map(p=>p[2]).concat(s1[0][2]),
+      mode: 'lines+markers',
+      name: 'Stationary (s1)',
+      line: { width: 4 },
+      marker: { size: 4 }
+    };
+
+    // trace for s2 (closed loop)
+    const t2 = {
+      x: s2.map(p=>p[0]).concat(s2[0][0]),
+      y: s2.map(p=>p[1]).concat(s2[0][1]),
+      z: s2.map(p=>p[2]).concat(s2[0][2]),
+      mode: 'lines+markers',
+      name: 'Tilted (s2)',
+      line: { width: 4, dash: 'dash' },
+      marker: { size: 4 }
+    };
+
+    // connecting lines + distance labels
+    const connectors = [];
+    distances.forEach((d, i) => {
+      const p1 = s1[i], p2 = s2[i];
+      connectors.push({
+        x: [p1[0], p2[0]],
+        y: [p1[1], p2[1]],
+        z: [p1[2], p2[2]],
+        mode: 'lines+text',
+        text: [`${d.toFixed(2)}`],
+        textposition: 'middle right',
+        name: `d${i+1}`,
+        showlegend: false
+      });
+    });
+
+    const data = [t1, t2, ...connectors];
+
+    const layout = {
+      scene: {
+        xaxis: { title: 'X' },
+        yaxis: { title: 'Y' },
+        zaxis: { title: 'Z' },
+        aspectmode: 'cube'
+      },
+      margin: { l:0, r:0, b:0, t:30 }
+    };
+
+    Plotly.newPlot('plot', data, layout);
+  </script>
+</body>
+</html>

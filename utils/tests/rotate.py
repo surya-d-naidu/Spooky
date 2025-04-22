@@ -16,11 +16,16 @@ update_interval_ms = 20  # update every 20 ms for smooth motion
 HIP_FIXED = 110  # Fixed hip angle (degrees)
 
 # Define servo channels for each leg and phase offsets.
-legs = {
+"""legs = {
     'front_left':  {'hip': 2,  'knee': 1,  'calf': 0,  'phase': T/2},
     'hind_left': {'hip': 5,  'knee': 4,  'calf': 3,  'phase': 0},
     'front_right':   {'hip': 10, 'knee': 11, 'calf': 12, 'phase': 0},
-    'hind_right':  {'hip': 13, 'knee': 14, 'calf': 15, 'phase': T/2},
+    'hind_right':  {'hip': 13, 'knee': 14, """
+legs = {
+    'front_left':  {'hip': 4,  'knee': 3,  'calf': 2,  'phase': T/2},
+    'hind_left': {'hip': 7,  'knee': 6,  'calf': 5,  'phase': 0},
+    'front_right':   {'hip': 8, 'knee': 9, 'calf': 10, 'phase': 0},
+    'hind_right':  {'hip': 11, 'knee': 12, 'calf': 13, 'phase': T/2},
 }
 
 # ----- Adjusted for Rotation -----
@@ -58,6 +63,45 @@ def compute_delta(t, phase, T_delta, delta_amp, direction):
 
 # ----- Main Gait Loop -----
 def gait_loop():
+    print("Starting rotation gait loop. Press Ctrl+C to stop.")
+    start_time = time.time()  # seconds
+    try:
+        while True:
+            t_now_ms = (time.time() - start_time) * 1000  # current time in ms
+            for leg_name, params in legs.items():
+                phase = params['phase']
+                # Compute sine value for phase synchronization
+                val = math.sin(2 * math.pi * ((t_now_ms + phase) % T) / T)
+                
+                # Set hip angle based on leg side
+                if 'left' in leg_name:
+                    # Left legs: stance (val < 0) -> 140° (backward), swing (val > 0) -> 80° (forward)
+                    hip_angle = HIP_FIXED - 30 * val
+                else:
+                    # Right legs: stance (val < 0) -> 80° (forward), swing (val > 0) -> 140° (backward)
+                    hip_angle = HIP_FIXED + 30 * val
+                
+                # Compute desired vertical altitude L
+                L_desired = desired_altitude(t_now_ms, phase, T, L_max, L_min)
+                
+                # Compute IK for knee and calf angles
+                knee_angle, calf_angle = compute_IK(L_desired, l1, l2)
+                
+                # No delta since delta_amp = 0
+                modified_knee_angle = knee_angle
+                
+                # Debug print
+                print(f"{leg_name:12s} | L: {L_desired:5.2f} | Hip: {hip_angle:5.2f}°, "
+                      f"Knee: {modified_knee_angle:5.2f}°, Calf: {calf_angle:5.2f}°")
+                
+                # Send commands to the servos
+                s(params['hip'], hip_angle)
+                s(params['knee'], modified_knee_angle)
+                s(params['calf'], calf_angle)
+            time.sleep(update_interval_ms / 1000.0)
+    except KeyboardInterrupt:
+        print("Gait loop stopped.")
+"""def gait_loop():
     print("Starting counter-clockwise rotation gait. Press Ctrl+C to stop.")
     start_time = time.time()
     try:
@@ -85,6 +129,6 @@ def gait_loop():
             time.sleep(update_interval_ms / 1000.0)
     except KeyboardInterrupt:
         print("Gait loop stopped.")
-
+"""
 if __name__ == '__main__':
     gait_loop()
