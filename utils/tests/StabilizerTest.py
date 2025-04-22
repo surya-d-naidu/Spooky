@@ -20,10 +20,10 @@ HIP_FIXED = 110
 
 # Define servo channels for each leg.
 legs = {
-    'front_left':  {'hip': 2,  'knee': 1,  'calf': 0,  'pos': 'front_left'},
-    'hind_left':   {'hip': 5,  'knee': 4,  'calf': 3,  'pos': 'hind_left'},
-    'front_right': {'hip': 10, 'knee': 11, 'calf': 12, 'pos': 'front_right'},
-    'hind_right':  {'hip': 13, 'knee': 14, 'calf': 15, 'pos': 'hind_right'},
+    'front_left':  {'hip': 4,  'knee': 3,  'calf': 2,  'pos': 'front_left'},
+    'hind_left':   {'hip': 8,  'knee': 9,  'calf': 10,  'pos': 'hind_left'},
+    'front_right': {'hip': 14, 'knee': 12, 'calf': 11, 'pos': 'front_right'},
+    'hind_right':  {'hip': 7, 'knee': 6, 'calf': 5, 'pos': 'hind_right'},
 }
 
 # Gains for altitude adjustment based on IMU data (tune these experimentally)
