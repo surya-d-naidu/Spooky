@@ -46,6 +46,7 @@ def setFromDict(dicto):
     set_servo_angle(14, dicto["slider_11"])
     set_servo_angle(15, dicto["slider_12"])
 
+#testing
 if __name__ == "__main__":
     # Define the channel (pin) where the servo is connected
     servo_channel = 13
