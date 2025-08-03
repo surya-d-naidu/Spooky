@@ -1,0 +1,30 @@
+# Modular Autonomous Robot System Requirements
+
+# Core Dependencies
+numpy>=1.24.0
+requests>=2.31.0
+pillow>=10.0.0
+
+# Computer Vision
+opencv-python>=4.8.0
+
+# Optional Development Dependencies
+# For testing and debugging
+matplotlib>=3.7.0
+jupyter>=1.0.0
+
+# Hardware Interface (if using actual hardware)
+# Uncomment these if you're running on actual hardware:
+# RPi.GPIO>=0.7.1
+# adafruit-circuitpython-pca9685>=3.4.0
+# adafruit-circuitpython-motor>=3.4.0
+
+# For ESP32 Arduino development (install separately):
+# Arduino IDE with ESP32 board support
+# WiFi libraries (included in ESP32 core)
+
+# System Requirements:
+# - Python 3.8 or higher
+# - Ollama service with llava:7b model
+# - Camera (USB webcam or CSI camera)
+# - (Optional) Robot hardware with servos

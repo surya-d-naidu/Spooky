@@ -97,10 +97,11 @@ def shift_body_forward():
     for params in legs.values():
         s(params['hip'], apply_bias(params['hip'], HIP_FIXED))
 
-def crawl_gait_loop():
+def crawl_gait_loop(duration=None):
     global prev_active_leg
     print("Starting crawl gait loop with body shifts. Ctrl+C to stop.")
     start_time = time.time()
+    end_time = start_time + duration if duration else float('inf')
 
     # initial stance: set all legs on ground
     for name, p in legs.items():
@@ -111,7 +112,7 @@ def crawl_gait_loop():
     time.sleep(0.5)
 
     try:
-        while True:
+        while time.time() < end_time:
             t_ms = (time.time() - start_time) * 1000
             active_leg = None
 
