@@ -31,6 +31,7 @@ def move_servo_relative(channel, target_angle):
     current_angle = target_angle
     return current_angle
 
+#used for animation
 def setFromDict(dicto):
     set_servo_angle(0, dicto["slider_1"])
     set_servo_angle(1, dicto["slider_2"])
