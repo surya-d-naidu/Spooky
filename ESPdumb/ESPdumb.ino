@@ -1,6 +1,6 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
-#include <Adafruit_PWMServoDriver.h>
+#include <Adafruit_PCA9685.h>
 
 // WiFi credentials
 const char* ssid = "YOUR_SSID";
@@ -10,7 +10,8 @@ WiFiUDP Udp;
 unsigned int localUdpPort = 4210;  // Port to listen on
 char incomingPacket[128];
 
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
+#define PCA9685_ADDR 0x40
+Adafruit_PCA9685 pwm;
 #define SERVOMIN  120
 #define SERVOMAX  600
 
@@ -23,7 +24,7 @@ void setup() {
   }
   Serial.println("\nWiFi connected");
   Udp.begin(localUdpPort);
-  pwm.begin();
+  pwm.begin(PCA9685_ADDR);
   pwm.setPWMFreq(60);
 }
 

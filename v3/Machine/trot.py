@@ -2,46 +2,21 @@ import math
 import time
 from servo import set_servo_angle as s  # s(channel, angle)
 
-# ----- Configuration -----
+
+# Import gait and servo parameters from robot_config.py
+from ..robot_config import config
+
 # Link lengths (units: e.g., centimeters)
-l1 = 5.0    # upper leg length
-l2 = 5.0    # lower leg length
-
-L_max = l1 + l2 * 0.9    # slightly bent knee position when foot is on ground
-L_min = L_max * 0.7      # minimum vertical distance when foot is lifted
-
-T = 2000                 # full gait cycle period in milliseconds (increased for stability)
-update_interval_ms = 20  # update every 20 ms for smooth motion
-
-HIP_FIXED = 110  # Fixed hip angle (degrees)
-
-# ----- Servo Biases -----
-servo_biases = {
-    4: -10.0,   # Channel 4 has +4 degree bias as specified
-    3: 0.0,
-    2: 4.0,
-    7: 0.0,
-    6: 0.0,
-    5: 0.0,
-    8: 0.0,
-    9: 0.0,
-    10: 0.0,
-    14: 0.0,
-    12: 0.0,
-    11: 0.0,
-}
-
-# Define servo channels for each leg and phase offsets.
-# For crawl gait, we distribute the phases evenly:
-legs = {
-    'front_left':  {'hip': 4,  'knee': 3,  'calf': 2,  'phase': 0},      # First leg to move
-    'front_right': {'hip': 8,  'knee': 9,  'calf': 10, 'phase': -T/4},   # Second leg
-    'hind_right':  {'hip': 14, 'knee': 12, 'calf': 11, 'phase': -T/2},   # Third leg
-    'hind_left':   {'hip': 7,  'knee': 6,  'calf': 5,  'phase': -3*T/4}, # Fourth leg
-}
-
-# ----- Variable for Forward Motion -----
-step_length = 45.0  # Horizontal distance in degrees to move leg forward/backward
+l1 = config['gait']['l1']
+l2 = config['gait']['l2']
+L_max = config['gait']['L_max']
+L_min = config['gait']['L_min']
+T = config['gait']['T']
+update_interval_ms = config['gait']['update_interval_ms']
+HIP_FIXED = config['gait']['HIP_FIXED']
+servo_biases = config['gait']['servo_biases']
+legs = config['gait']['legs']
+step_length = config['gait']['step_length']
 
 # ----- Function to Apply Servo Bias -----
 def apply_bias(channel, angle):
@@ -80,11 +55,10 @@ def compute_IK(L, l1, l2):
     calf_angle = theta  # As per the formula.
     return knee_angle, calf_angle
 
+
 # ----- One Limb at a Time Gait Loop (Crawl Gait) -----
-# Insert at top (if not already defined)
-step_length = 15.0      # how many degrees of horizontal foot travel per step
-shift_amount = 3.0      # how much to lean body forward (degrees on hip servos)
-shift_duration = 0.1    # seconds to hold body shift
+shift_amount = config['gait']['shift_amount']
+shift_duration = config['gait']['shift_duration']
 prev_active_leg = None  # track when a step just completed
 
 def shift_body_forward():
@@ -170,8 +144,9 @@ def crawl_gait_loop(duration=None):
         print("Crawl gait stopped.")
 
 # ----- Bi-Diagonal Rotation Without Hip Servo -----
-turn_offset_knee = 5.0   # degrees offset for knee
-turn_offset_calf = 5.0   # degrees offset for calf
+
+turn_offset_knee = config['gait']['turn_offset_knee']
+turn_offset_calf = config['gait']['turn_offset_calf']
 
 def rotate_in_place(direction, duration=3):
     """

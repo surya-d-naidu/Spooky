@@ -65,3 +65,39 @@ SERVO_CHANNELS = {
 # PCA9685 I2C settings
 PCA9685_ADDRESS = 0x40
 I2C_BUS = 1
+
+# Gait and servo parameters (for trot.py)
+config['gait'] = {
+    'l1': 5.0,    # upper leg length
+    'l2': 5.0,    # lower leg length
+    'L_max': 5.0 + 5.0 * 0.9,
+    'L_min': (5.0 + 5.0 * 0.9) * 0.7,
+    'T': 2000,    # full gait cycle period in ms
+    'update_interval_ms': 20,
+    'HIP_FIXED': 110,
+    'servo_biases': {
+        4: -10.0,
+        3: 0.0,
+        2: 4.0,
+        7: 0.0,
+        6: 0.0,
+        5: 0.0,
+        8: 0.0,
+        9: 0.0,
+        10: 0.0,
+        14: 0.0,
+        12: 0.0,
+        11: 0.0,
+    },
+    'legs': {
+        'front_left':  {'hip': 4,  'knee': 3,  'calf': 2,  'phase': 0},
+        'front_right': {'hip': 8,  'knee': 9,  'calf': 10, 'phase': -2000/4},
+        'hind_right':  {'hip': 14, 'knee': 12, 'calf': 11, 'phase': -2000/2},
+        'hind_left':   {'hip': 7,  'knee': 6,  'calf': 5,  'phase': -3*2000/4},
+    },
+    'step_length': 45.0,
+    'shift_amount': 3.0,
+    'shift_duration': 0.1,
+    'turn_offset_knee': 5.0,
+    'turn_offset_calf': 5.0,
+}
