@@ -7,7 +7,13 @@ import time
 import random
 from typing import Dict, Any
 
-from ..core.interfaces import IActuatorInterface, RobotAction
+try:
+    from ..core.interfaces import IActuatorInterface, RobotAction
+except ImportError:
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.interfaces import IActuatorInterface, RobotAction
 
 class QuadrupedMovement(IActuatorInterface):
     """Movement actuator for quadruped robots"""
@@ -33,7 +39,15 @@ class QuadrupedMovement(IActuatorInterface):
                 self.available = True
             else:
                 # Try to import from trot module
-                from ..trot import crawl_gait_loop, rotate_in_place
+                try:
+                    from ..trot import crawl_gait_loop, rotate_in_place
+                except ImportError:
+                    # Fallback for direct execution
+                    import sys
+                    import os
+                    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                    from trot import crawl_gait_loop, rotate_in_place
+                
                 self.crawl_gait_loop = crawl_gait_loop
                 self.rotate_in_place = rotate_in_place
                 self.available = True

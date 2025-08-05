@@ -6,16 +6,32 @@ import time
 import threading
 from typing import Dict, Any, List, Optional
 
-from .core.interfaces import (
-    ModuleManager, RobotConfig, RobotState, 
-    ISensorInterface, IActuatorInterface, IAIInterface
-)
-
-# Import specific modules
-from .ai.ollama_ai import OllamaAI
-from .sensors.camera import CameraSensor
-from .actuators.quadruped_movement import QuadrupedMovement
-from .personality.dog_personality import DogPersonality
+try:
+    from .core.interfaces import (
+        ModuleManager, RobotConfig, RobotState, 
+        ISensorInterface, IActuatorInterface, IAIInterface
+    )
+    # Import specific modules
+    from .ai.ollama_ai import OllamaAI
+    from .sensors.camera import CameraSensor
+    from .actuators.quadruped_movement import QuadrupedMovement
+    from .personality.dog_personality import DogPersonality
+except ImportError:
+    # Fallback for direct execution
+    import sys
+    import os
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, script_dir)
+    
+    from core.interfaces import (
+        ModuleManager, RobotConfig, RobotState, 
+        ISensorInterface, IActuatorInterface, IAIInterface
+    )
+    # Import specific modules
+    from ai.ollama_ai import OllamaAI
+    from sensors.camera import CameraSensor
+    from actuators.quadruped_movement import QuadrupedMovement
+    from personality.dog_personality import DogPersonality
 
 class AutonomousRobot:
     """Main autonomous robot controller - modular and extensible"""

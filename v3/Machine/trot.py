@@ -2,9 +2,16 @@ import math
 import time
 from servo import set_servo_angle as s  # s(channel, angle)
 
-
 # Import gait and servo parameters from robot_config.py
-from ..robot_config import config
+try:
+    # Try relative import first (when run as module)
+    from ..robot_config import config
+except ImportError:
+    # Fallback to absolute import (when run directly)
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from robot_config import config
 
 # Link lengths (units: e.g., centimeters)
 l1 = config['gait']['l1']

@@ -10,7 +10,13 @@ from typing import Dict, Any, List, Optional
 from PIL import Image
 import time
 
-from ..core.interfaces import IAIInterface, SensorData, RobotState, RobotAction
+try:
+    from ..core.interfaces import IAIInterface, SensorData, RobotState, RobotAction
+except ImportError:
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.interfaces import IAIInterface, SensorData, RobotState, RobotAction
 
 class OllamaAI(IAIInterface):
     """AI module using Ollama with llava model"""
