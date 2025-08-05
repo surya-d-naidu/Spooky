@@ -1,0 +1,22 @@
+"""
+Simulation Requirements and Setup
+Install these dependencies to run the simulation tools
+"""
+
+# Core simulation dependencies
+matplotlib>=3.7.0  # For plotting and visualization
+numpy>=1.24.0      # For numerical computations
+scipy>=1.10.0      # For advanced mathematical functions
+
+# Optional dependencies for enhanced features
+seaborn>=0.12.0    # For prettier plots
+plotly>=5.14.0     # For interactive 3D visualizations
+jupyter>=1.0.0     # For notebook-based analysis
+
+# Animation and real-time visualization
+pillow>=10.0.0     # For image processing in animations
+imageio>=2.28.0    # For creating GIF animations
+
+# Development and debugging
+pytest>=7.3.0      # For testing simulation functions
+black>=23.3.0      # For code formatting
