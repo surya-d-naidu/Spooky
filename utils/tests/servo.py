@@ -2,7 +2,7 @@ import time
 import Adafruit_PCA9685
 
 # Initialize the PCA9685 using the default address (0x40).
-pwm = Adafruit_PCA9685.PCA9685(0x60, busnum=1)
+pwm = Adafruit_PCA9685.PCA9685(0x40, busnum=1)
 
 # Set frequency to 60Hz, good for servos.
 pwm.set_pwm_freq(60)

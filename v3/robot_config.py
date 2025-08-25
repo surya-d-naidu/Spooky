@@ -4,7 +4,7 @@ For distributed setup with laptop AI server
 """
 
 # Get your laptop's IP address and update this
-LAPTOP_IP = "192.168.1.100"  # CHANGE THIS TO YOUR LAPTOP'S IP
+LAPTOP_IP = "192.168.160.3"  # CHANGE THIS TO YOUR LAPTOP'S IP
 
 # Robot configuration for Raspberry Pi
 config = {
