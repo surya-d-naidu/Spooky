@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadruped Robot Controller</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #007bff;
+        }
+        
+        .status h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+        
+        .btn-danger:hover {
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #1e7e34);
+        }
+        
+        .btn-success:hover {
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+        }
+        
+        .direction-pad {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 10px;
+            max-width: 300px;
+            margin: 20px auto;
+        }
+        
+        .direction-pad .btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            padding: 0;
+        }
+        
+        .direction-pad .forward { grid-column: 2; grid-row: 1; }
+        .direction-pad .left { grid-column: 1; grid-row: 2; }
+        .direction-pad .stop { grid-column: 2; grid-row: 2; }
+        .direction-pad .right { grid-column: 3; grid-row: 2; }
+        .direction-pad .backward { grid-column: 2; grid-row: 3; }
+        
+        .message {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        /* New Styles for Toggles and Windows */
+        .toggle-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px 25px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+        }
+
+        .floating-window {
+            position: fixed;
+            z-index: 1000;
+            display: none;
+            background-color: rgba(20, 20, 30, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid #4a5568;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            color: #e5e7eb;
+        }
+        .window-header {
+            padding: 0.75rem 1rem;
+            cursor: move;
+            border-bottom: 1px solid #4a5568;
+            background-color: rgba(55, 65, 81, 0.8);
+            border-top-left-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+            color: #fff;
+            font-weight: bold;
+        }
+        .toggle-label {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            color: #333;
+            font-weight: 500;
+        }
+        .toggle-input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            width: 52px;
+            height: 28px;
+            background-color: #ccc;
+            border-radius: 9999px;
+            transition: background-color 0.2s;
+            margin-left: 10px;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            right: 28px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .toggle-input:checked + .toggle-slider {
+            background-color: #007bff;
+        }
+        .toggle-input:checked + .toggle-slider::before {
+            transform: translateX(24px);
+        }
+        
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            h1 { font-size: 2em; }
+            .direction-pad .btn { width: 60px; height: 60px; font-size: 18px; }
+            .toggle-section { flex-direction: column; gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Quadruped Robot Controller</h1>
+        
+        <div class="status">
+            <h3>Robot Status</h3>
+            <p id="status-text">Ready to receive commands</p>
+            <p><strong>Current Action:</strong> <span id="current-action">None</span></p>
+            <p><strong>Is Moving:</strong> <span id="is-moving">No</span></p>
+        </div>
+
+        <div class="toggle-section">
+            <label class="toggle-label">
+                Servo Angles
+                <input type="checkbox" class="toggle-input" id="toggle-angles">
+                <span class="toggle-slider"></span>
+            </label>
+             <label class="toggle-label">
+                Servo Graph
+                <input type="checkbox" class="toggle-input" id="toggle-graph">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        
+        <div class="direction-pad">
+            <button class="btn forward" onclick="sendCommand('forward')">↑</button>
+            <button class="btn left" onclick="sendCommand('left')">←</button>
+            <button class="btn btn-danger stop" onclick="sendCommand('stop')">⏹</button>
+            <button class="btn right" onclick="sendCommand('right')">→</button>
+            <button class="btn backward" onclick="sendCommand('backward')">↓</button>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-success" onclick="sendCommand('stand')">Stand</button>
+            <button class="btn" onclick="sendCommand('sit')">Sit</button>
+            <button class="btn btn-danger" onclick="emergencyStop()">Emergency Stop</button>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="playCustomAnimation('walk_forward')">Walk Forward</button>
+            <button class="btn" onclick="playReverseAnimation('walk_forward')">Walk Backward (Reverse)</button>
+            <button class="btn" onclick="playCustomAnimation('rotate_left')">Rotate Left</button>
+            <button class="btn" onclick="playReverseAnimation('rotate_left')">Rotate Right (Reverse)</button>
+        </div>
+        
+        <div id="message"></div>
+    </div>
+
+    <!-- Floating Windows -->
+    <div id="servo-angles-window" class="floating-window w-80" style="width: 320px; top: 100px; left: 50px;">
+        <div class="window-header">Servo Angles (°)</div>
+        <div id="servo-angles-content" style="padding: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; font-size: 0.875rem;">
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <div id="servo-graph-window" class="floating-window" style="width: 600px; height: 400px; top: 150px; right: 50px;">
+        <div class="window-header">Real-time Servo Graph</div>
+        <div style="padding: 1rem; height: calc(100% - 40px);">
+            <canvas id="servo-chart"></canvas>
+        </div>
+    </div>
+
+
+    <script>
+        let statusInterval;
+        let dataFetchInterval;
+        let servoChart;
+        let chartData = {
+            labels: [],
+            datasets: []
+        };
+        const MAX_DATA_POINTS = 50;
+        const SERVO_COLORS = [
+            '#3b82f6', '#ef4444', '#22c55e', '#eab308', '#8b5cf6', '#ec4899',
+            '#10b981', '#f97316', '#6366f1', '#06b6d4', '#d946ef', '#f59e0b'
+        ];
+
+        // --- API Communication ---
+        function sendCommand(direction) {
+            fetch(`/api/move/${direction}`)
+                .then(response => response.json())
+                .then(data => {
+                    showMessage(data.message, data.status === 'success' ? 'success' : 'error');
+                    updateStatus();
+                })
+                .catch(error => {
+                    showMessage('Error sending command: ' + error, 'error');
+                });
+        }
+        
+        function emergencyStop() {
+            fetch('/api/emergency_stop')
+                .then(response => response.json())
+                .then(data => {
+                    showMessage(data.message, data.status === 'success' ? 'success' : 'error');
+                    updateStatus();
+                })
+                .catch(error => {
+                    showMessage('Error with emergency stop: ' + error, 'error');
+                });
+        }
+        
+        function playCustomAnimation(animationName) {
+            fetch(`/api/custom_animation/${animationName}`)
+                .then(response => response.json())
+                .then(data => {
+                    showMessage(data.message, data.status === 'success' ? 'success' : 'error');
+                    updateStatus();
+                })
+                .catch(error => {
+                    showMessage('Error playing animation: ' + error, 'error');
+                });
+        }
+        
+        function playReverseAnimation(animationName) {
+            fetch(`/api/reverse_animation/${animationName}`)
+                .then(response => response.json())
+                .then(data => {
+                    showMessage(data.message, data.status === 'success' ? 'success' : 'error');
+                    updateStatus();
+                })
+                .catch(error => {
+                    showMessage('Error playing reverse animation: ' + error, 'error');
+                });
+        }
+        
+        // --- Status and Data Updates ---
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('current-action').textContent = data.current_action.replace(/_/g, ' ') || 'None';
+                    document.getElementById('is-moving').textContent = data.is_moving ? 'Yes' : 'No';
+                    document.getElementById('status-text').textContent = 
+                        data.is_moving ? `Robot is ${data.current_action.replace(/_/g, ' ')}` : 'Robot is idle';
+                })
+                .catch(error => {
+                    console.error('Error updating status:', error);
+                });
+        }
+        
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = 'message';
+            }, 3000);
+        }
+
+        async function fetchAndUpdateServoData() {
+            try {
+                const response = await fetch('/api/servo_data');
+                const data = await response.json();
+                if (data.status !== 'success') return;
+
+                const angles = data.angles;
+                const anglesContent = document.getElementById('servo-angles-content');
+                const graphWindowVisible = document.getElementById('servo-graph-window').style.display === 'block';
+                const anglesWindowVisible = document.getElementById('servo-angles-window').style.display === 'block';
+
+                if (anglesWindowVisible) {
+                    anglesContent.innerHTML = Object.entries(angles).map(([name, value]) => 
+                        `<div style="display: flex; justify-content: space-between;">
+                            <span style="color: #9ca3af;">${name.replace(/_/g, ' ')}:</span>
+                            <span style="font-family: monospace; font-weight: 600;">${parseInt(value)}°</span>
+                        </div>`
+                    ).join('');
+                }
+
+                if (graphWindowVisible) {
+                    if (chartData.datasets.length === 0) {
+                        Object.keys(angles).forEach((key, index) => {
+                            chartData.datasets.push({
+                                label: key, data: [],
+                                borderColor: SERVO_COLORS[index % SERVO_COLORS.length],
+                                borderWidth: 2, pointRadius: 0, tension: 0.4
+                            });
+                        });
+                    }
+                    const now = new Date();
+                    chartData.labels.push(`${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`);
+
+                    Object.keys(angles).forEach((key, index) => {
+                        chartData.datasets[index].data.push(angles[key]);
+                    });
+
+                    if (chartData.labels.length > MAX_DATA_POINTS) {
+                        chartData.labels.shift();
+                        chartData.datasets.forEach(dataset => dataset.data.shift());
+                    }
+                    servoChart.update();
+                }
+
+            } catch (error) {
+                console.error("Error fetching servo data:", error);
+            }
+        }
+
+        // --- Chart and Window Management ---
+        function setupChart() {
+            const ctx = document.getElementById('servo-chart').getContext('2d');
+            servoChart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
+                    scales: {
+                        x: { ticks: { display: false }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                        y: { min: 0, max: 180, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#e5e7eb' } }
+                    },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#e5e7eb', boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+        
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            const header = element.querySelector(".window-header");
+            if (header) { header.onmousedown = dragMouseDown; }
+
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        function manageDataFetching() {
+             const graphVisible = document.getElementById('toggle-graph').checked;
+             const anglesVisible = document.getElementById('toggle-angles').checked;
+             if(graphVisible || anglesVisible) {
+                 if (!dataFetchInterval) {
+                     dataFetchInterval = setInterval(fetchAndUpdateServoData, 500);
+                 }
+             } else {
+                 clearInterval(dataFetchInterval);
+                 dataFetchInterval = null;
+             }
+        }
+
+        // --- Initialization and Event Listeners ---
+        window.onload = function() {
+            // Initial status update
+            updateStatus();
+            statusInterval = setInterval(updateStatus, 2000);
+            
+            // Setup chart and draggable windows
+            setupChart();
+            makeDraggable(document.getElementById('servo-angles-window'));
+            makeDraggable(document.getElementById('servo-graph-window'));
+
+            // Toggle listeners
+            document.getElementById('toggle-angles').addEventListener('change', (e) => {
+                document.getElementById('servo-angles-window').style.display = e.target.checked ? 'block' : 'none';
+                manageDataFetching();
+            });
+
+            document.getElementById('toggle-graph').addEventListener('change', (e) => {
+                document.getElementById('servo-graph-window').style.display = e.target.checked ? 'block' : 'none';
+                manageDataFetching();
+            });
+            
+            // Keyboard controls
+            document.addEventListener('keydown', function(event) {
+                switch(event.key) {
+                    case 'ArrowUp': case 'w': case 'W': sendCommand('forward'); break;
+                    case 'ArrowDown': case 's': case 'S': sendCommand('backward'); break;
+                    case 'ArrowLeft': case 'a': case 'A': sendCommand('left'); break;
+                    case 'ArrowRight': case 'd': case 'D': sendCommand('right'); break;
+                    case ' ': case 'Escape': sendCommand('stop'); event.preventDefault(); break;
+                }
+            });
+        };
+    </script>
+</body>
+</html>

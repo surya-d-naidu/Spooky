@@ -32,18 +32,20 @@ def move_servo_relative(channel, target_angle):
     return current_angle
 
 def setFromDict(dicto):
+    # Handle both animation formats: with 'positions' wrapper and direct format
+    positions = dicto.get('positions', dicto)
     
-    set_servo_angle(2, dicto["slider_2"])
-    set_servo_angle(3, dicto["slider_3"])
-    set_servo_angle(4, dicto["slider_4"])
-    set_servo_angle(5, dicto["slider_5"])
-    set_servo_angle(6, dicto["slider_6"])
-    set_servo_angle(7, dicto["slider_7"])
-    set_servo_angle(8, dicto["slider_8"])
-    set_servo_angle(9, dicto["slider_9"])
-    set_servo_angle(10,dicto["slider_10"])
-    set_servo_angle(11,dicto["slider_11"])
-    set_servo_angle(12, dicto["slider_12"])
+    set_servo_angle(2, int(positions["slider_2"]))
+    set_servo_angle(3, int(positions["slider_3"]))
+    set_servo_angle(4, int(positions["slider_4"]))
+    set_servo_angle(5, int(positions["slider_5"]))
+    set_servo_angle(6, int(positions["slider_6"]))
+    set_servo_angle(7, int(positions["slider_7"]))
+    set_servo_angle(8, int(positions["slider_8"]))
+    set_servo_angle(9, int(positions["slider_9"]))
+    set_servo_angle(10, int(positions["slider_10"]))
+    set_servo_angle(11, int(positions["slider_11"]))
+    set_servo_angle(12, int(positions["slider_12"]))
    
 if __name__ == "__main__":
     # Define the channel (pin) where the servo is connected

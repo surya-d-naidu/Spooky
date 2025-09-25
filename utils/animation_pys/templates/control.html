@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Control Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        .control-panel {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .control-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .forward { background-color: #4CAF50; color: white; }
+        .backward { background-color: #f44336; color: white; }
+        .left { background-color: #2196F3; color: white; }
+        .right { background-color: #FF9800; color: white; }
+        .stop { background-color: #9E9E9E; color: white; }
+        .stand { background-color: #795548; color: white; }
+        
+        .control-btn:hover {
+            opacity: 0.8;
+        }
+        
+        .status {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <h1>Robot Control Panel</h1>
+        
+        <div class="status">
+            <h3>Status: <span id="robot-status">Ready</span></h3>
+        </div>
+        
+        <div class="button-grid">
+            <div></div>
+            <button class="control-btn forward" onclick="moveRobot('forward')">Forward</button>
+            <div></div>
+            
+            <button class="control-btn left" onclick="moveRobot('left')">Left</button>
+            <button class="control-btn stop" onclick="moveRobot('stop')">Stop</button>
+            <button class="control-btn right" onclick="moveRobot('right')">Right</button>
+            
+            <div></div>
+            <button class="control-btn backward" onclick="moveRobot('backward')">Backward</button>
+            <div></div>
+        </div>
+        
+        <div class="button-grid">
+            <button class="control-btn stand" onclick="moveRobot('stand')">Stand</button>
+            <button class="control-btn" onclick="moveRobot('sit')">Sit</button>
+            <button class="control-btn" onclick="emergencyStop()" style="background-color: #d32f2f;">Emergency Stop</button>
+        </div>
+    </div>
+
+    <script>
+        function moveRobot(direction) {
+            fetch(`/api/move/${direction}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('robot-status').textContent = data.action || direction;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('robot-status').textContent = 'Error';
+                });
+        }
+        
+        function emergencyStop() {
+            fetch('/api/emergency_stop')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('robot-status').textContent = 'Emergency Stopped';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+        
+        // Keyboard controls
+        document.addEventListener('keydown', function(event) {
+            switch(event.key) {
+                case 'ArrowUp': moveRobot('forward'); break;
+                case 'ArrowDown': moveRobot('backward'); break;
+                case 'ArrowLeft': moveRobot('left'); break;
+                case 'ArrowRight': moveRobot('right'); break;
+                case ' ': moveRobot('stop'); event.preventDefault(); break;
+            }
+        });
+    </script>
+</body>
+</html>
