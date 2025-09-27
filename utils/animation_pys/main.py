@@ -13,7 +13,10 @@ class AnimationController:
     def load_animation(self, animation_name):
         """Load animation frames from JSON file"""
         try:
-            with open(f'animation_j/{animation_name}.json') as f:
+            import os
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            animation_path = os.path.join(base_dir, 'animation_j', f'{animation_name}.json')
+            with open(animation_path) as f:
                 return json.load(f)
         except FileNotFoundError:
             print(f"Animation file {animation_name}.json not found")
@@ -131,4 +134,5 @@ def stand():
 def say_hi():
     animation_controller.start_animation("hi")
 
-def sit();
+def sit():
+    animation_controller.start_animation("sit")

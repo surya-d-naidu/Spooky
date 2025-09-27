@@ -1,3 +1,4 @@
 spooky/
 llms/
 venv/
+*/__pycache_/
