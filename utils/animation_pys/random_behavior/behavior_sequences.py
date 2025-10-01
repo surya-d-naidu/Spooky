@@ -32,9 +32,9 @@ class BehaviorSequences:
         
     def patrol_sequence(self):
         sequence = [
-            ("walk_forward", 4),
-            ("turn_right", 3),
-            ("walk_forward", 4),
+            ("walk_forward", 4),  # Done
+            ("turn_right", 3),    # Failure
+            ("walk_forward", 4),  
             ("turn_right", 3),
             ("walk_forward", 4),
             ("turn_right", 3),
