@@ -46,10 +46,10 @@ class RandomBehaviorController:
             "rotate_left": 0.1
         }
         
-        self.min_action_duration = 2
-        self.max_action_duration = 8
-        self.min_pause_duration = 1
-        self.max_pause_duration = 5
+        self.min_action_duration = 6
+        self.max_action_duration = 15
+        self.min_pause_duration = 2
+        self.max_pause_duration = 8
         
     def start(self):
         if self.is_running:
@@ -78,6 +78,9 @@ class RandomBehaviorController:
         return self.robot_state
         
     def _behavior_loop(self):
+        consecutive_errors = 0
+        max_consecutive_errors = 5
+        
         while self.is_running:
             try:
                 action = self._choose_random_action()
@@ -85,6 +88,9 @@ class RandomBehaviorController:
                 
                 self.logger.info(f"Starting random action: {action} for {duration:.1f}s")
                 self._execute_action(action)
+                
+                # Reset error counter on successful action
+                consecutive_errors = 0
                 
                 time.sleep(duration)
                 
@@ -99,10 +105,20 @@ class RandomBehaviorController:
                     time.sleep(pause_duration)
                     
             except Exception as e:
-                self.logger.error(f"Error in behavior loop: {str(e)}")
+                consecutive_errors += 1
+                self.logger.error(f"Error in behavior loop (attempt {consecutive_errors}): {str(e)}")
                 self.robot_state['current_action'] = 'error'
                 self.robot_state['is_moving'] = False
-                time.sleep(2)
+                
+                if consecutive_errors >= max_consecutive_errors:
+                    self.logger.error(f"Too many consecutive errors ({consecutive_errors}), stopping behavior loop")
+                    self.is_running = False
+                    break
+                
+                # Exponential backoff for errors
+                error_sleep = min(2 ** consecutive_errors, 30)
+                self.logger.info(f"Waiting {error_sleep}s before retry...")
+                time.sleep(error_sleep)
                 
     def _choose_random_action(self):
         actions = list(self.action_weights.keys())

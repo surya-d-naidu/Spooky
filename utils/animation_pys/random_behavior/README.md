@@ -1,122 +1,167 @@
-# Random Behavior Controller
+# Spooky Robot - Random Behavior System
 
-A fun system that makes your robotic dog perform random movements, sequences, and special behaviors without any external input. Perfect for demonstrations, testing, or just entertainment!
+This directory contains the improved random behavior system for the Spooky robot with enhanced reliability and automatic startup capabilities.
 
-## Features
+## 🚀 Quick Start
 
-### 🎯 Basic Random Mode
-- Random walks, turns, sits, stands
-- Configurable action durations and pause times
-- Weighted probability system for different actions
+### Manual Control
+```bash
+# Start the robot
+./spooky_robot.sh start
 
-### 🎭 Advanced Sequences
-- **Playful**: Greeting waves, walks, and sits
-- **Patrol**: Systematic area coverage
-- **Exploration**: Curious looking around and walking
-- **Dance**: Fun spinning and waving moves  
-- **Exercise**: Forward/backward walking routine
-- **Greeting**: Multiple hi waves in different directions
+# Check status
+./spooky_robot.sh status
 
-### 🌪️ Special Modes
+# View live logs
+./spooky_robot.sh logs
 
-#### Chaos Mode
-- Rapid random actions
-- Very short durations (0.5-3 seconds)
-- Unpredictable stopping and starting
-- Pure randomness!
+# Stop the robot
+./spooky_robot.sh stop
 
-#### Zen Mode  
-- Peaceful, slow movements
-- Long meditation pauses
-- Only calm actions (sit, stand, gentle turns)
-- Relaxing behavior
+# Restart the robot
+./spooky_robot.sh restart
+```
 
-#### Party Mode
-- Dance routines with multiple moves:
-  - Spin Dance: Continuous rotations
-  - Wave Dance: Repeated greetings
-  - Bounce Dance: Sit-stand bouncing
-  - Twist Dance: Left-right turning
-- High energy and fun!
-
-## Usage
-
-### Quick Start
+### Interactive Mode (Original)
 ```bash
 python3 run_random_behavior.py
 ```
 
-### Menu Options
-1. **Basic Random Movements** - Standard random behavior
-2. **Advanced Sequences** - Predefined behavior patterns  
-3. **Chaos Mode** - Crazy unpredictable movements
-4. **Zen Mode** - Calm and peaceful behavior
-5. **Party Mode** - Dance party time!
-6. **Stop Current Mode** - Stop without exiting
-0. **Exit** - Quit the program
-
-### Programmatic Usage
-
-```python
-from random_behavior import RandomBehaviorController, ChaosMode, PartyMode
-from main import animation_controller
-
-# Basic random behavior
-controller = RandomBehaviorController(animation_controller)
-controller.start()
-
-# Chaos mode
-chaos = ChaosMode(animation_controller)  
-chaos.start()
-
-# Stop any mode
-controller.stop()
+### Continuous Mode (New - Perfect for SSH-free operation)
+```bash
+python3 run_continuous_random.py
 ```
 
-## Customization
+## 📁 Files Overview
 
-### Adjust Random Behavior Settings
+- **`random_controller.py`** - Core random behavior controller (improved with 6+ second actions)
+- **`run_continuous_random.py`** - NEW: Continuous loop version for automatic startup
+- **`spooky_robot.sh`** - NEW: Shell script for easy control and systemd integration
+- **`spooky-robot.service`** - NEW: Systemd service file template
+- **`run_random_behavior.py`** - Original interactive menu system
+- **`behavior_sequences.py`** - Advanced behavior sequences
+- **`special_modes.py`** - Special modes (Chaos, Zen, Party)
 
-```python
-controller = RandomBehaviorController(animation_controller)
+## ⚙️ Improvements Made
 
-# Change action duration range (seconds)
-controller.set_action_duration_range(1, 10)
+### 1. Enhanced Timing
+- **Minimum action duration**: 6 seconds (was 2 seconds)
+- **Maximum action duration**: 15 seconds (was 8 seconds)
+- **Minimum pause duration**: 2 seconds (was 1 second)
+- **Maximum pause duration**: 8 seconds (was 5 seconds)
 
-# Change pause duration range (seconds)  
-controller.set_pause_duration_range(0.5, 3)
+### 2. Better Error Handling
+- Exponential backoff on errors
+- Maximum consecutive error limit
+- Automatic recovery and restart
+- Comprehensive logging
 
-# Adjust action probabilities
-new_weights = {
-    "walk_forward": 0.4,  # More walking
-    "sit": 0.3,          # More sitting
-    "hi": 0.1            # Less waving
-}
-controller.set_action_weights(new_weights)
+### 3. Continuous Operation
+- Runs in an infinite loop until stopped
+- Automatic restart on unexpected failures
+- Graceful shutdown handling
+- Status monitoring
+
+### 4. SSH-Free Operation
+- Shell script for easy control
+- Systemd integration ready
+- Background operation support
+- PID file management
+
+## 🔧 System Integration
+
+### For Automatic Startup on Boot:
+
+1. **Copy the service file:**
+   ```bash
+   sudo cp spooky-robot.service /etc/systemd/system/
+   ```
+
+2. **Enable and start the service:**
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable spooky-robot.service
+   sudo systemctl start spooky-robot.service
+   ```
+
+3. **Monitor the service:**
+   ```bash
+   sudo systemctl status spooky-robot.service
+   journalctl -u spooky-robot.service -f
+   ```
+
+### Alternative: Using the Shell Script with Cron
+Add to crontab for startup on reboot:
+```bash
+@reboot /home/surya/Spooky/Spooky/utils/animation_pys/random_behavior/spooky_robot.sh start
 ```
 
-### Available Actions
-- `walk_forward` - Walk straight ahead
-- `walk_backward` - Walk backwards  
-- `turn_left` - Turn left in place
-- `turn_right` - Turn right in place
-- `sit` - Sit down
-- `stand` - Stand up/idle position
-- `hi` - Wave greeting
-- `rotate_left` - Rotate left
+## 📊 Monitoring and Logs
 
-## Safety Features
+- **Main log file**: `/tmp/spooky_startup.log`
+- **Python log file**: `/tmp/spooky_random_behavior.log`
+- **PID file**: `/tmp/spooky_random_behavior.pid`
 
-- Automatic stop on program exit
-- Thread-safe operation
-- Error handling and recovery
-- Graceful shutdown with Ctrl+C
+View logs in real-time:
+```bash
+tail -f /tmp/spooky_startup.log
+# or
+./spooky_robot.sh logs
+```
 
-## Tips
+## 🎮 Available Actions
 
-- **Testing**: Start with Zen Mode for gentle movements
-- **Demo**: Use Party Mode to show off capabilities
-- **Development**: Use Basic Random for general testing
-- **Fun**: Chaos Mode is hilarious but intense!
+The robot randomly performs these actions with weighted probabilities:
 
-The system automatically handles animation transitions and ensures the robot returns to a safe idle position when stopped.
+- **Walk Forward** (25% chance) - 6-15 seconds
+- **Turn Left** (15% chance) - 6-15 seconds  
+- **Turn Right** (15% chance) - 6-15 seconds
+- **Walk Backward** (10% chance) - 6-15 seconds
+- **Rotate Left** (10% chance) - 6-15 seconds
+- **Sit** (10% chance) - 6-15 seconds
+- **Stand** (10% chance) - 6-15 seconds
+- **Wave Hi** (5% chance) - 6-15 seconds
+
+Between each action, the robot pauses for 2-8 seconds.
+
+## 🔍 Troubleshooting
+
+### Check if running:
+```bash
+./spooky_robot.sh status
+```
+
+### Manual stop if needed:
+```bash
+pkill -f run_continuous_random.py
+rm -f /tmp/spooky_random_behavior.pid
+```
+
+### Reset everything:
+```bash
+./spooky_robot.sh stop
+sleep 2
+./spooky_robot.sh start
+```
+
+### View recent errors:
+```bash
+grep -i error /tmp/spooky_startup.log
+```
+
+## 🚫 Stopping the Robot
+
+Always use proper shutdown methods:
+- `./spooky_robot.sh stop` (recommended)
+- `sudo systemctl stop spooky-robot.service` (if using systemd)
+- `Ctrl+C` (if running in foreground)
+
+This ensures graceful shutdown and proper cleanup of resources.
+
+## 🔄 Migration from Old System
+
+The new system is backward compatible. You can still use:
+- `run_random_behavior.py` for interactive mode
+- All existing behavior sequences and special modes
+
+The new continuous mode (`run_continuous_random.py`) is designed for unattended operation.

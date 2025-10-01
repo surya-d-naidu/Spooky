@@ -1,0 +1,39 @@
+# Systemd service file for Spooky Robot Random Behavior
+# Place this file at: /etc/systemd/system/spooky-robot.service
+# 
+# Installation commands:
+# sudo cp spooky-robot.service /etc/systemd/system/
+# sudo systemctl daemon-reload
+# sudo systemctl enable spooky-robot.service
+# sudo systemctl start spooky-robot.service
+#
+# Control commands:
+# sudo systemctl status spooky-robot.service
+# sudo systemctl stop spooky-robot.service
+# sudo systemctl restart spooky-robot.service
+# journalctl -u spooky-robot.service -f
+
+[Unit]
+Description=Spooky Robot Random Behavior System
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=spooky
+Group=spooky
+WorkingDirectory=/home/spooky/Spooky/Spooky/utils/animation_pys/random_behavior
+ExecStart=/usr/bin/python3 /home/spooky/Spooky/Spooky/utils/animation_pys/random_behavior/run_continuous_random.py
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
